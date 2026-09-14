@@ -3,8 +3,8 @@
 ; This is a position independent reverse shell which
 ; connects back to localhost on port 1337.
 ;
-; Assemble: nasm -f win64 -F cv8 pic-reverse-shell.x64.asm
-; Link: link.exe /subsystem:console /entry:main pic-reverse-shell.x64.obj /debug
+; Assemble: nasm -f win64 pic-reverse-shell.x64.asm
+; Link: link.exe /subsystem:console /entry:main pic-reverse-shell.x64.obj
 ; 
 bits 64
 default rel
