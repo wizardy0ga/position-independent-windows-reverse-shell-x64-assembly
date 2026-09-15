@@ -34,8 +34,7 @@ main:
     mov r12, rcx             ; r12 = Kernel32.dll base address
     xor rcx, rcx             ; rcx = 0 (lpAddress)
     mov edx, 0x1000          ; edx = 0x1000 (dwSize)
-    mov r8d, 0x1000          ; r8d = 0x1000 MEM_COMMIT
-    or r8d, 0x2000           ; r8d = MEM_COMMIT | MEM_RESERVE (flAllocationType)
+    mov r8d, 0x3000           ; r8d = MEM_COMMIT | MEM_RESERVE (flAllocationType)
     mov r9d, 0x04            ; r9d = PAGE_READWRITE (lpProtect)
     sub rsp, 0x28
     call rax                 ; VirtualAlloc(0, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
